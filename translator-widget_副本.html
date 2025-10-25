@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手写体翻译器</title>
+    
+    <!-- 引入免费的手写体字体 -->
+    <link href="https://fastly.jsdelivr.net/npm/lxgw-wenkai-webfont@1.1.0/style.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .main {
+            padding: 30px;
+        }
+        
+        .input-section {
+            margin-bottom: 30px;
+        }
+        
+        .label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        #inputText {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+        
+        #inputText:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f5f7fa;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        
+        .output-section {
+            background: linear-gradient(180deg, #FFF8DC 0%, #FAEBD7 100%);
+            border-radius: 15px;
+            padding: 30px;
+            min-height: 200px;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+        
+        .output-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 30px;
+            right: 30px;
+            height: 1px;
+            background: repeating-linear-gradient(
+                90deg,
+                #e8ddc7,
+                #e8ddc7 10px,
+                transparent 10px,
+                transparent 20px
+            );
+        }
+        
+        #outputText {
+            font-family: 'LXGW WenKai', '霞鹜文楷', cursive;
+            font-size: 28px;
+            line-height: 2;
+            color: #2c3e50;
+            letter-spacing: 2px;
+            min-height: 150px;
+            padding-top: 20px;
+        }
+        
+        .placeholder {
+            color: #999;
+            font-style: italic;
+            font-size: 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tools {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e8ed;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .font-size-control button {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f5f7fa;
+            font-size: 18px;
+        }
+        
+        .font-size-control span {
+            font-size: 14px;
+            color: #666;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+            .header, .buttons, .tools, .input-section {
+                display: none;
+            }
+            .output-section {
+                background: white;
+                page-break-inside: avoid;
+            }
+            #outputText {
+                font-size: 24px;
+                line-height: 1.8;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✍️ 手写体翻译器</h1>
+            <p>将英文翻译成优美的中文手写体</p>
+        </div>
+        
+        <div class="main">
+            <div class="input-section">
+                <label class="label" for="inputText">输入英文文本：</label>
+                <textarea 
+                    id="inputText" 
+                    placeholder="在这里粘贴或输入英文文本..."
+                    onpaste="handlePaste(event)"
+                ></textarea>
+            </div>
+            
+            <div class="buttons">
+                <button class="btn-primary" onclick="translateText()">
+                    🔄 翻译成中文
+                </button>
+                <button class="btn-secondary" onclick="clearAll()">
+                    🗑️ 清空
+                </button>
+            </div>
+            
+            <div class="output-section">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>正在翻译中...</p>
+                </div>
+                <div id="outputText">
+                    <span class="placeholder">翻译结果将显示在这里...</span>
+                </div>
+            </div>
+            
+            <div class="tools">
+                <div class="font-size-control">
+                    <button onclick="changeFontSize(-2)">－</button>
+                    <span id="fontSizeLabel">字体: 28px</span>
+                    <button onclick="changeFontSize(2)">＋</button>
+                </div>
+                <div>
+                    <button class="btn-secondary" onclick="copyText()">📋 复制</button>
+                    <button class="btn-secondary" onclick="printText()">🖨️ 打印</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentFontSize = 28;
+        
+        // 处理粘贴事件
+        function handlePaste(e) {
+            // 自动去除多余的空格和换行
+            setTimeout(() => {
+                const input = document.getElementById('inputText');
+                input.value = input.value.trim();
+            }, 0);
+        }
+        
+        // 翻译功能
+        async function translateText() {
+            const inputText = document.getElementById('inputText').value.trim();
+            
+            if (!inputText) {
+                alert('请输入要翻译的文本！');
+                return;
+            }
+            
+            const outputDiv = document.getElementById('outputText');
+            const loading = document.getElementById('loading');
+            
+            // 显示加载动画
+            loading.classList.add('active');
+            outputDiv.style.display = 'none';
+            
+            try {
+                // 使用 Google 翻译 API（免费版本）
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(inputText)}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                // 提取翻译结果
+                let translatedText = '';
+                if (data && data[0]) {
+                    data[0].forEach(item => {
+                        if (item[0]) {
+                            translatedText += item[0];
+                        }
+                    });
+                }
+                
+                // 显示结果
+                setTimeout(() => {
+                    loading.classList.remove('active');
+                    outputDiv.style.display = 'block';
+                    outputDiv.innerHTML = translatedText || '翻译失败，请重试';
+                    
+                    // 添加打字机效果
+                    animateText(translatedText);
+                }, 500);
+                
+            } catch (error) {
+                loading.classList.remove('active');
+                outputDiv.style.display = 'block';
+                outputDiv.innerHTML = '翻译出错，请检查网络连接后重试';
+                console.error('Translation error:', error);
+            }
+        }
+        
+        // 打字机动画效果
+        function animateText(text) {
+            const outputDiv = document.getElementById('outputText');
+            let index = 0;
+            outputDiv.innerHTML = '';
+            
+            const timer = setInterval(() => {
+                if (index < text.length) {
+                    outputDiv.innerHTML += text.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(timer);
+                }
+            }, 50);
+        }
+        
+        // 清空功能
+        function clearAll() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('outputText').innerHTML = '<span class="placeholder">翻译结果将显示在这里...</span>';
+        }
+        
+        // 复制功能
+        function copyText() {
+            const text = document.getElementById('outputText').innerText;
+            if (text && !text.includes('翻译结果将显示在这里')) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('已复制到剪贴板！');
+                });
+            } else {
+                alert('没有可复制的内容！');
+            }
+        }
+        
+        // 打印功能
+        function printText() {
+            const text = document.getElementById('outputText').innerText;
+            if (text && !text.includes('翻译结果将显示在这里')) {
+                window.print();
+            } else {
+                alert('没有可打印的内容！');
+            }
+        }
+        
+        // 字体大小调节
+        function changeFontSize(delta) {
+            currentFontSize = Math.max(16, Math.min(48, currentFontSize + delta));
+            document.getElementById('outputText').style.fontSize = currentFontSize + 'px';
+            document.getElementById('fontSizeLabel').textContent = `字体: ${currentFontSize}px`;
+        }
+        
+        // Enter 键快捷翻译（Ctrl/Cmd + Enter）
+        document.getElementById('inputText').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                translateText();
+            }
+        });
+    </script>
+</body>
+</html>
